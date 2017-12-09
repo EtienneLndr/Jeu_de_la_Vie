@@ -17,6 +17,9 @@ using namespace chrono;
 
 class Pong;
 
+#define COEF_MULTIPLICATEUR	2
+#define NUMBER_OF_THREADS	crs::len(crs::detectCpuInfo(false)) * COEF_MULTIPLICATEUR
+
 //==============================================================//
 //						PARTIE THREADS                          //
 //==============================================================//
@@ -37,6 +40,8 @@ struct SharedData {
 };
 
 void drawCases(int i, int indice, int step, SharedData &sd, Pong * pong);
+
+static int final_time;
 
 //==============================================================//
 //						 PARTIE OBJET                           //
@@ -71,7 +76,7 @@ class Pong {
 		
 		void drawAll(sf::RenderWindow * win);
 		void clicSouris(int x, int y);
-		int executeTraitements(SharedData &sd);
+		void executeTraitements(SharedData &sd);
 	
 	};
 

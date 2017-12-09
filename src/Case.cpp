@@ -31,9 +31,9 @@ void Case::changeColor() {
 void Case::dessine(sf::RenderWindow *win) { 
 	int rouge, vert, bleu;
   	couleur.getRVB(rouge, vert, bleu);
-  	sf::RectangleShape shape(sf::Vector2f(largeur, hauteur));
-  	shape.setFillColor(sf::Color(rouge, vert, bleu));
-  	shape.setPosition(x,y);
+  	sf::RectangleShape shape(sf::Vector2f((float)largeur, (float)hauteur));
+  	shape.setFillColor(sf::Color((unsigned char)rouge, (unsigned char)vert, (unsigned char)bleu));
+  	shape.setPosition((float)x, (float)y);
 	win->draw(shape);
 }
 

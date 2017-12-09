@@ -9,23 +9,24 @@ void drawCases(int i, int indice, int step, SharedData &sd, Pong * pong) {
 	(void)pong;
 	
 	while (!sd.stop_thread) {
-		cout << "debut du numéro " << i << ": " << indice + (step*step)/sd.thread_count << endl;
+		//cout << "debut du numéro " << i << ": " << indice + (step*step)/sd.thread_count << endl;
 		
 		for (int j = indice; j < indice + (step*step)/sd.thread_count; j++) {
 			//cout << "j: " << j << endl;
 			//pong->getCase(j)->dessine(pong->getWin());
+			//if (j%1000==0) cout << "i: " << i << ", j: " << j << endl;
 		}
 
 		// Attente de la fin du traitement de chaque case
 		sd.mtx.lock();
 
 		sd.actual_action++;
-		while (sd.actual_action != 0) {
-			sd.cnd.wait(sd.mtx);
-		}
+		sd.cnd.wait(sd.mtx);
 
 		sd.mtx.unlock();
 	}
+
+	cout << "fin pour " << i << endl;
 }
 
 //==============================================================//
@@ -68,7 +69,7 @@ void Pong::drawAll(sf::RenderWindow * win) {
 }
 
 int Pong::execute(void) {
-	int nbrCpu = crs::len(crs::detectCpuInfo(false));
+	int nbrCpu = NUMBER_OF_THREADS;
 
 	cout << nbrCpu << endl;
 
@@ -87,10 +88,10 @@ int Pong::execute(void) {
 	  	sd.td[i].th.join();
 	}
 
-	return 0;
+	return final_time;
 }
 
-int Pong::executeTraitements(SharedData &sd) {
+void Pong::executeTraitements(SharedData &sd) {
 	/**
 	 * Cette fonction est l'élément clé de notre programme. En effet, une boucle while permet
 	 * de lancer indéfiniment notre programme jusqu'à ce que l'utilisateur décide de mettre
@@ -99,7 +100,7 @@ int Pong::executeTraitements(SharedData &sd) {
 	 */
 	_win->clear(sf::Color(240, 240, 240));
 
-	int timeMax = 0;
+	int time_max = 0;
 
   	while (_win->isOpen()) {
 		high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -109,11 +110,15 @@ int Pong::executeTraitements(SharedData &sd) {
 		if (!pause) {
 			_win->display();
 			
-			if (sd.actual_action != 2);
+			sd.mtx.lock();
+
+			if (sd.actual_action != NUMBER_OF_THREADS);
 			else {
 				sd.actual_action = 0;
 				sd.cnd.notify_all();
 			}
+
+			sd.mtx.unlock();
 
 			//if (etape%1000 == 0) cout << "etape = " << etape << endl;
 			etape++;
@@ -127,6 +132,8 @@ int Pong::executeTraitements(SharedData &sd) {
 					sd.mtx.lock();
 
 				  	sd.stop_thread = !sd.stop_thread;
+					sd.actual_action = 0;
+					sd.cnd.notify_all();
 
 					sd.mtx.unlock();
 
@@ -138,8 +145,7 @@ int Pong::executeTraitements(SharedData &sd) {
         			// Si c'est la touche 'echap' on met le jeu en pause
         			if(sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) {
         				// On met le jeu en pause --> plus aucun mouvement
-        				if (!pause) pause = true;
-        				else pause = false;
+        				pause = !pause;
         			}
              		break;
              	// Si on clique avec la souris:
@@ -163,9 +169,9 @@ int Pong::executeTraitements(SharedData &sd) {
 		// Calcul de l'intervalle de temps
 		auto duration = (int)duration_cast<microseconds>( t2 - t1 ).count();
 		
-		if (duration > timeMax) {
-			timeMax = duration;
-			cout << "Maximum time -> " << timeMax << endl;
+		if (duration > time_max) {
+			time_max = duration;
+			cout << "Maximum time -> " << time_max << endl;
 		}
 
     	/**
@@ -175,7 +181,7 @@ int Pong::executeTraitements(SharedData &sd) {
     	usleep(500);
 	}
 	  
-	return timeMax;
+	final_time = time_max;
 }
 
 
