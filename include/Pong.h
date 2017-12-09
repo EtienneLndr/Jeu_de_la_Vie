@@ -10,6 +10,7 @@
 #include <mutex>
 #include <condition_variable>
 #include "SFML/Graphics.hpp"
+#include "crsUtils.h"
 
 using namespace std;
 using namespace chrono;
@@ -30,7 +31,7 @@ struct SharedData {
 	vector<ThreadData> td;
 	condition_variable_any cnd;
 	mutex mtx;
-	int actual_action;
+	int actual_action = 0;
 	bool stop_thread = false;
 	int thread_count;
 };

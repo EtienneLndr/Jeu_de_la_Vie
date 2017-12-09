@@ -6,23 +6,25 @@
 //						PARTIE THREADS                          //
 //==============================================================//
 void drawCases(int i, int indice, int step, SharedData &sd, Pong * pong) {
+	(void)pong;
+	
 	while (!sd.stop_thread) {
-		for (int j = indice; j < indice + step/sd.thread_count; j++) {
-			pong->getCase(i)->dessine(pong->getWin());
+		cout << "debut du numéro " << i << ": " << indice + (step*step)/sd.thread_count << endl;
+		
+		for (int j = indice; j < indice + (step*step)/sd.thread_count; j++) {
+			//cout << "j: " << j << endl;
+			//pong->getCase(j)->dessine(pong->getWin());
 		}
 
 		// Attente de la fin du traitement de chaque case
 		sd.mtx.lock();
 
-		cout << sd.actual_action << endl;
-
-		while (sd.actual_action++ != 0) {
+		sd.actual_action++;
+		while (sd.actual_action != 0) {
 			sd.cnd.wait(sd.mtx);
 		}
 
 		sd.mtx.unlock();
-
-		cout << sd.stop_thread << endl;
 	}
 }
 
@@ -65,17 +67,21 @@ void Pong::drawAll(sf::RenderWindow * win) {
 	}
 }
 
-int Pong::execute(void) { 
+int Pong::execute(void) {
+	int nbrCpu = crs::len(crs::detectCpuInfo(false));
+
+	cout << nbrCpu << endl;
+
 	// Lancement des threads
 	SharedData sd;
-	sd.td.resize(5);
-	sd.thread_count = 4;
+	sd.td.resize(nbrCpu + 1);
+	sd.thread_count = nbrCpu;
 	
-	for (int i = 0; i < 4; i++) {
-		sd.td[i].th = thread(drawCases, i, step*step/4 * i, step, ref(sd), this);
+	for (int i = 0; i < nbrCpu; i++) {
+		sd.td[i].th = thread(drawCases, i, ((step*step)/nbrCpu) * i, step, ref(sd), this);
 	}
 
-	sd.td[4].th = thread(&Pong::executeTraitements, this, ref(sd));
+	sd.td[nbrCpu].th = thread(&Pong::executeTraitements, this, ref(sd));
 
 	for (unsigned int i = 0; i < sd.td.size(); i++) {
 	  	sd.td[i].th.join();
@@ -102,8 +108,8 @@ int Pong::executeTraitements(SharedData &sd) {
 		
 		if (!pause) {
 			_win->display();
-
-			if (sd.actual_action != 4);
+			
+			if (sd.actual_action != 2);
 			else {
 				sd.actual_action = 0;
 				sd.cnd.notify_all();

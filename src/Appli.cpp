@@ -7,7 +7,7 @@ int main(void) {
 	srand(time(NULL));
 	
 	// Création du plateau
-  	Pong pong("Jeu de la Vie", 600, 600, 300);
+  	Pong pong("Jeu de la Vie", 600, 600, 30);
   	
   	// Lancement de l'exécution du programme
 	int timeMax = pong.execute();
