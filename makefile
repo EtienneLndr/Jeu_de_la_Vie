@@ -11,9 +11,9 @@ CXX=$(wildcard /opt/rh/devtoolset-2/root/usr/bin/g++)
 ifeq (${CXX},)
   CXX=g++
 endif
-CXXFLAGS=-std=c++11 -W -Wall -Wno-long-long -pedantic -g
-IFLAGS=-I$(SFMLDIR)/include -I./include
-LDFLAGS=-L$(SFMLDIR)/lib -lsfml-graphics -lsfml-window -lsfml-system \
+CXXFLAGS= -std=c++14 -W -Wall -Wno-long-long -pedantic -g -O4 -pthread
+IFLAGS= -I$(SFMLDIR)/include -I./include
+LDFLAGS= -L$(SFMLDIR)/lib -lsfml-graphics -lsfml-window -lsfml-system -lpthread \
         -Wl,-rpath,${SFMLDIR}/lib
 
 #-- main target to obtain --
@@ -31,6 +31,8 @@ src/Appli.o : include/Pong.h
 src/Pong.o : include/Pong.h include/Case.h
 src/Forme.o : include/Forme.h include/Couleur.h
 src/Case.o : include/Case.h include/Forme.h include/Couleur.h
+src/save_datas.o : include/save_datas.h
+src/crsUtis.o : include/crsUtis.h
 
 #-- compiler command for every source file --
 %.o : %.cpp 

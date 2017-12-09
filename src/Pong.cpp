@@ -2,105 +2,129 @@
 #include "Case.h"
 
 
-using namespace std;
-
-
-Pong::Pong(string n, int w, int h, int _step) : _name(n), _width(w), _height(h), step(_step) {
-	// Création de la fenêtre de jeu
-	_win = new sf::RenderWindow(sf::VideoMode(_width, _height), _name);
-	
-	for(int i=0; i<step; i++) {
-		for(int j=0; j<step; j++) {
-			addCase(new Case(_width/step*j, _height/step*i, _width/step, _height/step, 255, 255, 255));
-			}
+//==============================================================//
+//						PARTIE THREADS                          //
+//==============================================================//
+void drawCases(int i, int indice, int step, SharedData &sd, Pong * pong) {
+	while (!sd.stop_thread) {
+		for (int j = indice; j < indice + step/sd.thread_count; j++) {
+			pong->getCase(i)->dessine(pong->getWin());
 		}
-	
-	ant = new Ant(
-		_width/step*(rand()%step),
-		_width/step*(rand()%step),
-		_width/step,
-		_height/step,
-		25 + rand()%200,
-		25 + rand()%200,
-		25 + rand()%200,
-		rand()%4,
-		_width/step,
-		_width,
-		_height);
 
+		// Attente de la fin du traitement de chaque case
+		sd.mtx.lock();
+
+		cout << sd.actual_action << endl;
+
+		while (sd.actual_action++ != 0) {
+			sd.cnd.wait(sd.mtx);
+		}
+
+		sd.mtx.unlock();
+
+		cout << sd.stop_thread << endl;
+	}
+}
+
+//==============================================================//
+//						 PARTIE OBJET                           //
+//==============================================================//
+Pong::Pong(string n, int w, int h, int _step) : name(n), width(w), height(h), step(_step) {
+	// Création de la fenêtre de jeu
+	_win = new sf::RenderWindow(sf::VideoMode(width, height), name);
+	
+	// Création de toutes les cases
+	for(int i = 0; i < step; i++) {
+		for(int j = 0; j < step; j++) {
+			addCase(new Case(width/step*j, height/step*i, width/step, height/step, 255, 255, 255));
+		}
 	}
 
+	// Initialisation du paramètre permettant de mettre le programme en pause
+	pause = false;
+}
 
 Pong::~Pong(void) {
   	// Destruction des objets graphiques
   	delete _win;
-  	for (unsigned int i=0; i<_case.size(); i++) {
-  		delete _case[i];
-  		}
-  	delete ant;
-	}
-
+  	for (unsigned int i = 0; i < cases.size(); i++) {
+  		delete cases[i];
+  	}
+}
 
 void Pong::clicSouris(int x, int y) {
 	cout << "x = " << x << ", y = " << y << endl;
-	positionOfCase = x/(_width/step) + y/(_height/step)*step;
-	_case[positionOfCase]->changeColor();
-	}
-
-
-void Pong::move() {
-	positionOfCase = ant->getX()/(_width/step) + ant->getY()/(_height/step)*step;
-	ant->moveAnt(_case[positionOfCase]);
-	}
-
+	positionOfCase = x/(width/step) + y/(height/step)*step;
+	cases[positionOfCase]->changeColor();
+}
 
 void Pong::drawAll(sf::RenderWindow * win) {
 	// On dessine tous les objets graphiques en appelant leur fonction de dessin
-	_case[positionOfCase]->dessine(win);
-	ant->dessine(win);
+	for (unsigned int i = 0; i < cases.size(); i++) {
+		cases[i]->dessine(win);
 	}
+}
 
-
-void Pong::initBoard(sf::RenderWindow * win) {
-	// On dessine tous les objets graphiques en appelant leur fonction de dessin
-	for (unsigned int i=0; i<_case.size(); i++) {
-		_case[i]->dessine(win);
-		}
+int Pong::execute(void) { 
+	// Lancement des threads
+	SharedData sd;
+	sd.td.resize(5);
+	sd.thread_count = 4;
 	
-	ant->dessine(win);
+	for (int i = 0; i < 4; i++) {
+		sd.td[i].th = thread(drawCases, i, step*step/4 * i, step, ref(sd), this);
 	}
 
+	sd.td[4].th = thread(&Pong::executeTraitements, this, ref(sd));
 
-void Pong::execute(void) { 
+	for (unsigned int i = 0; i < sd.td.size(); i++) {
+	  	sd.td[i].th.join();
+	}
+
+	return 0;
+}
+
+int Pong::executeTraitements(SharedData &sd) {
 	/**
 	 * Cette fonction est l'élément clé de notre programme. En effet, une boucle while permet
 	 * de lancer indéfiniment notre programme jusqu'à ce que l'utilisateur décide de mettre
-	 * fin à la partie en fermant la fenêtre de jeu. Dans cette boucle while on fait appel
+	 * fin à la partie en fermant la fenêtre de jeu. Dans cette boucle while nous faisons appel
 	 * à différentes fonctions permettant de mettre en place notre jeu. 
 	 */
 	_win->clear(sf::Color(240, 240, 240));
-	
-	initBoard(_win);
-	
+
+	int timeMax = 0;
+
   	while (_win->isOpen()) {
-    	//_win->clear(sf::Color(240, 240, 240));
-    
-    	// Dessin des objets graphiques
-		drawAll(_win);
+		high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
+    	_win->clear(sf::Color(240, 240, 240));
 		
-		// On déplace la fourmi
 		if (!pause) {
-			move();
-			etape++;
-			if (etape%1000 == 0) cout << "etape = " << etape << endl;
+			_win->display();
+
+			if (sd.actual_action != 4);
+			else {
+				sd.actual_action = 0;
+				sd.cnd.notify_all();
 			}
-		
-		_win->display();
+
+			//if (etape%1000 == 0) cout << "etape = " << etape << endl;
+			etape++;
+		}
 		
     	sf::Event event;
     	if(_win->pollEvent(event)) {
       		switch (event.type) {
       			case sf::Event::Closed:
+					// Arrêt des threads permettant de traiter les cases
+					sd.mtx.lock();
+
+				  	sd.stop_thread = !sd.stop_thread;
+
+					sd.mtx.unlock();
+
+					// Fermeture de la fenêtre graphique
              		_win->close();
              		break;
              	// Si une touche du clavier est pressée:
@@ -110,14 +134,6 @@ void Pong::execute(void) {
         				// On met le jeu en pause --> plus aucun mouvement
         				if (!pause) pause = true;
         				else pause = false;
-        			} else if(sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
-        				ant->move("haut");
-        			} else if(sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
-        				ant->move("droite");
-        			} else if(sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
-        				ant->move("bas");
-        			} else if(sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
-        				ant->move("gauche");
         			}
              		break;
              	// Si on clique avec la souris:
@@ -129,19 +145,32 @@ void Pong::execute(void) {
         				 * cliqueSouris(int, int)
         				 */
         				clicSouris(event.mouseButton.x, event.mouseButton.y);
-    					}
+    				}
     				break;
         		default:
          			break;
-      			}
-    		}
+      		}
+		}
+		
+		high_resolution_clock::time_point t2 = high_resolution_clock::now();
+		
+		// Calcul de l'intervalle de temps
+		auto duration = (int)duration_cast<microseconds>( t2 - t1 ).count();
+		
+		if (duration > timeMax) {
+			timeMax = duration;
+			cout << "Maximum time -> " << timeMax << endl;
+		}
+
     	/**
     	 * On met le programme en pause pendant une petite durée car sinon celui-ci est trop rapide et
 		 * il plante.
     	 */
     	usleep(500);
-  		}
 	}
+	  
+	return timeMax;
+}
 
 
 

@@ -5,52 +5,78 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <cmath>
+#include <chrono>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 #include "SFML/Graphics.hpp"
-#include "Ant.h"
 
 using namespace std;
+using namespace chrono;
+
+class Pong;
+
+//==============================================================//
+//						PARTIE THREADS                          //
+//==============================================================//
+
+struct ThreadData {
+	thread th;
+	bool can_be_used = false;
+};
+
+//---- some data common to every thread ----
+struct SharedData {
+	vector<ThreadData> td;
+	condition_variable_any cnd;
+	mutex mtx;
+	int actual_action;
+	bool stop_thread = false;
+	int thread_count;
+};
+
+void drawCases(int i, int indice, int step, SharedData &sd, Pong * pong);
+
+//==============================================================//
+//						 PARTIE OBJET                           //
+//==============================================================//
 
 class Case;
 
 class Pong {
 	
 	public: 
-		void execute();
+		int execute();
 		
-		Pong(string n="Window", int w=400, int h=400, int step=1);
+		Pong(string n = "Window", int w = 400, int h = 400, int step = 1);
 		~Pong();
 		
-		Ant* getAnt();
-		void setAnt(Ant * a);
 		Case* getCase(int i);
 		void addCase(Case* c);
+		sf::RenderWindow * getWin();
+		void setWin(sf::RenderWindow * win);
 		
 	private:
-		string _name;
-    	int _width, _height;
+		string name;
+    	int width, height;
     	int step;
     	sf::RenderWindow *_win;
-		Ant* ant;
-		vector<Case*> _case;
+		vector<Case*> cases;
 		
 		int limite;
-		bool pause=false;
-		int dt=1;
 		int etape;
 		int positionOfCase;
+		bool pause;
 		
-		void move();
-		void initBoard(sf::RenderWindow * win);
-		void drawAll(sf::RenderWindow * win); 
-		void clicSouris(int x, int y); 
+		void drawAll(sf::RenderWindow * win);
+		void clicSouris(int x, int y);
+		int executeTraitements(SharedData &sd);
 	
 	};
-		
-		
-inline Ant* Pong::getAnt() { return ant; }
-inline void Pong::setAnt(Ant * a) { ant = a; }
-inline Case* Pong::getCase(int i) { return _case[i]; }
-inline void Pong::addCase(Case* c) { _case.push_back(c); }
 
+inline Case* Pong::getCase(int i) { return cases[i]; }
+inline void Pong::addCase(Case* c) { cases.push_back(c); }
+inline 	sf::RenderWindow * Pong::getWin() { return _win; }
+inline 	void Pong::setWin(sf::RenderWindow * win) { _win = win; }
 
 #endif

@@ -9,34 +9,30 @@ class Couleur {
 		~Couleur() { }
 		
 		void getRVB(int &r, int &v, int &b) {
-			r=rouge;
-			v=vert;
-			b=bleu;
-			}
+			r = rouge;
+			v = vert;
+			b = bleu;
+		}
 		
 		void setRVB(int r, int v, int b) {
-			rouge=r;
-			vert=v;
-			bleu=b;
-			}
+			rouge = r;
+			vert = v;
+			bleu = b;
+		}
 		
-		int getRouge() {
-			return rouge;
-			}
-		
-		int getVert() {
-			return vert;
-			}
-		
-		int getBleu() {
-			return bleu;
-			}
+		int getRouge();
+		int getVert();
+		int getBleu();
 	
 	private:
 		int rouge, vert, bleu;
 	
-	
-	};
+};
+
+
+inline int Couleur::getRouge() { return rouge; }
+inline int Couleur::getVert() { return vert; }
+inline int Couleur::getBleu() { return bleu; }
 
 
 #endif
